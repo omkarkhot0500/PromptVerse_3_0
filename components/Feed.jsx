@@ -32,10 +32,17 @@ const Feed = () => {
       setLoading(true);
       console.log("Fetching posts from /api/prompt");
       
-      const response = await fetch("/api/prompt");
+      // Add cache busting with timestamp
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/api/prompt?t=${timestamp}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       
       console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -57,6 +64,15 @@ const Feed = () => {
 
   useEffect(() => {
     fetchPosts();
+  }, []);
+
+  // Auto-refresh every 30 seconds to get new prompts
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchPosts();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const filterPrompts = (searchtext) => {
@@ -91,7 +107,7 @@ const Feed = () => {
     return (
       <div className="feed">
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
           <p className="text-lg font-semibold text-gray-700 animate-pulse">
             Loading awesome prompts...
           </p>
@@ -146,6 +162,12 @@ const Feed = () => {
             </div>
           )}
         </div>
+        <button 
+          onClick={fetchPosts}
+          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+        >
+          🔄 Refresh
+        </button>
       </div>
 
       {/* All Prompts */}

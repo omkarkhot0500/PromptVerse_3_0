@@ -14,6 +14,10 @@
 
 ## Installation
 
+  Go to  omkarkhot0500@gmail.com in google cloud console
+  --> change My First Project to PromptVerse 
+  ----> Credentials 
+
 Install my-project with npm
 
 ```bash

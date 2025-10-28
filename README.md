@@ -32,7 +32,7 @@ Install my-project with npm
 To deploy this project run
 
 
-  https://prompt-verse-k.vercel.app/
+  [https://prompt-verse-k.vercel.app/](https://prompt-verse-3-0.vercel.app/)
 
 
 

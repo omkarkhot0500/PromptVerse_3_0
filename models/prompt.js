@@ -16,8 +16,22 @@ const PromptSchema = new Schema({
   isPrivate: {
     type: Boolean,
     default: false,
-  }
+  },
+  // NEW: Expiry timestamp (only set for public prompts)
+  expiresAt: {
+    type: Date,
+    default: null,
+    index: true, // Index for efficient cleanup queries
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+    index: true,
+  },
 });
+
+// Add TTL index for MongoDB automatic deletion
+PromptSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0, sparse: true });
 
 const Prompt = models.Prompt || model('Prompt', PromptSchema);
 

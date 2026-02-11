@@ -13,6 +13,11 @@ export const POST = async (request) => {
       isPrivate: isPrivate || false,
     });
 
+    // NEW: Set expiresAt for public prompts (24 hours from now)
+    if (!isPrivate) {
+      newPrompt.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    }
+
     await newPrompt.save();
     return new Response(JSON.stringify(newPrompt), { status: 201 });
   } catch (error) {

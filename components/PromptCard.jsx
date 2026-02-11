@@ -26,6 +26,29 @@ const PromptCard = ({ post, handleEdit, handleDelete, handleTagClick }) => {
     setTimeout(() => setCopied(false), 3000);
   };
 
+  // NEW: Calculate time until expiry
+  const getTimeUntilExpiry = () => {
+    if (post.isPrivate || !post.expiresAt) return null;
+    
+    const now = new Date();
+    const expiry = new Date(post.expiresAt);
+    
+    if (expiry < now) return "Expired";
+    
+    const hoursLeft = Math.floor((expiry - now) / (1000 * 60 * 60));
+    const minutesLeft = Math.floor(((expiry - now) % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hoursLeft === 0) {
+      return `Expires in ${minutesLeft}m`;
+    }
+    if (hoursLeft < 1) return "Expires soon";
+    if (hoursLeft < 24) return `Expires in ${hoursLeft}h`;
+    
+    return null;
+  };
+
+  const expiryInfo = getTimeUntilExpiry();
+
   return (
     <div className='prompt_card'>
       <div className='flex justify-between items-start gap-5'>
@@ -72,6 +95,13 @@ const PromptCard = ({ post, handleEdit, handleDelete, handleTagClick }) => {
       >
         #{post.tag}
       </p>
+
+      {/* NEW: Show expiry information for public prompts */}
+      {expiryInfo && (
+        <p className='font-inter text-xs mt-2 px-2 py-1 rounded bg-red-100 text-red-700 inline-block'>
+          {expiryInfo}
+        </p>
+      )}
 
       {session?.user.id === post.creator._id && pathName === "/profile" && (
         <div className='mt-5 flex-center gap-4 border-t border-gray-100 pt-3'>

@@ -5,7 +5,9 @@ export const GET = async (request, { params }) => {
     try {
         await connectToDB()
 
-        // NEW: Get all of user's private prompts + their non-expired public prompts
+        const now = new Date();
+
+        // Get all of user's private prompts + their non-expired public prompts
         const prompts = await Prompt.find({
             creator: params.id,
             $or: [
@@ -13,8 +15,9 @@ export const GET = async (request, { params }) => {
                 {
                     isPrivate: false,
                     $or: [
-                        { expiresAt: null }, // Old prompts without expiresAt
-                        { expiresAt: { $gt: new Date() } }, // Not yet expired
+                        { expiresAt: { $eq: null } }, // Old prompts with explicit null
+                        { expiresAt: { $exists: false } }, // Old prompts without field
+                        { expiresAt: { $gt: now } }, // Not yet expired
                     ]
                 }
             ]
@@ -24,6 +27,7 @@ export const GET = async (request, { params }) => {
 
         return new Response(JSON.stringify(prompts), { status: 200 })
     } catch (error) {
+        console.error("Error fetching user posts:", error);
         return new Response("Failed to fetch prompts created by user", { status: 500 })
     }
 }

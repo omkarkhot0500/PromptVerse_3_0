@@ -13,14 +13,21 @@ export const POST = async (request) => {
       isPrivate: isPrivate || false,
     });
 
-    // NEW: Set expiresAt for public prompts (24 hours from now)
+    // Set expiresAt for public prompts (24 hours from now)
     if (!isPrivate) {
-      newPrompt.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      newPrompt.expiresAt = expiresAt;
+      console.log(`Public prompt created - Expires at: ${expiresAt.toISOString()}`);
+    } else {
+      console.log("Private prompt created - No expiry");
     }
 
-    await newPrompt.save();
-    return new Response(JSON.stringify(newPrompt), { status: 201 });
+    const savedPrompt = await newPrompt.save();
+    console.log(`Prompt saved successfully with ID: ${savedPrompt._id}`);
+
+    return new Response(JSON.stringify(savedPrompt), { status: 201 });
   } catch (error) {
+    console.error("Error creating prompt:", error);
     return new Response("Failed to create a new prompt", { status: 500 });
   }
 };

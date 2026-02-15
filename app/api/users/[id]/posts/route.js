@@ -1,7 +1,7 @@
 import Prompt from "@models/prompt";
 import { connectToDB } from "@utils/database";
 import { getServerSession } from "next-auth/next";
-import { handler as nextAuthHandler } from "../auth/[...nextauth]/route";
+import { handler as nextAuthHandler } from "../../../auth/[...nextauth]/route";
 
 export const GET = async (request, { params }) => {
     try {

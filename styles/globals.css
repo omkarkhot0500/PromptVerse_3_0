@@ -168,3 +168,12 @@
 .flex-between {
   @apply flex justify-between items-center;
 }
+
+/* Google AdSense Component */
+.google_adsense_container {
+  @apply w-full flex justify-center items-center py-4;
+}
+
+.google_adsense_container ins {
+  @apply block;
+}

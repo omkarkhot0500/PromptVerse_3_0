@@ -18,7 +18,7 @@ const Home = () => (
     <div className="w-full mt-16 pt-8 border-t border-gray-200">
       <GoogleAdSense
         publisherId="pub-9638300077760993"
-        adSlot="1234567890"
+        adSlot="4752142806"
         format="auto"
         responsive={true}
       />

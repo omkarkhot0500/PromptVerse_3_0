@@ -17,6 +17,11 @@ const PromptCard = ({ post, handleEdit, handleDelete, handleTagClick }) => {
 
     if (post.creator._id === session?.user.id) return router.push("/profile");
 
+    // Prevent navigation to other users' profiles if not logged in
+    if (!session?.user.id) {
+      return;
+    }
+
     router.push(`/profile/${post.creator._id}?name=${post.creator.username}`);
   };
 
@@ -68,9 +73,6 @@ const PromptCard = ({ post, handleEdit, handleDelete, handleTagClick }) => {
             <h3 className='font-satoshi font-semibold text-gray-900'>
               {post.creator.username}
             </h3>
-            <p className='font-inter text-sm text-gray-500'>
-              {post.creator.email}
-            </p>
           </div>
         </div>
 

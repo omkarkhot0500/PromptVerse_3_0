@@ -13,9 +13,9 @@ export const POST = async (request) => {
       isPrivate: isPrivate || false,
     });
 
-    // Set expiresAt for public prompts (24 hours from now)
+    // Set expiresAt for public prompts (48 hours from now)
     if (!isPrivate) {
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
       newPrompt.expiresAt = expiresAt;
       console.log(`Public prompt created - Expires at: ${expiresAt.toISOString()}`);
     } else {

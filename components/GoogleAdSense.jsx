@@ -5,14 +5,15 @@ import Script from 'next/script';
 const GoogleAdSense = ({ publisherId, adSlot, format = 'auto', responsive = true }) => {
   return (
     <>
-      <div className="google_adsense_container">
+      <div className="w-full flex justify-center items-center">
         <ins
-          className="adsbygoogle"
+          className="adsbygoogle w-full max-w-full"
           style={{
-            display: responsive ? 'block' : 'inline-block',
+            display: 'block',
             textAlign: 'center',
-            width: responsive ? '100%' : '728px',
-            height: responsive ? 'auto' : '90px',
+            width: '100%',
+            height: 'auto',
+            minHeight: '100px',
           }}
           data-ad-client={publisherId}
           data-ad-slot={adSlot}

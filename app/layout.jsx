@@ -10,13 +10,13 @@ export const metadata = {
 
 const RootLayout = ({ children }) => (
   <html lang='en'>
-    <body>
+    <body className='flex flex-col min-h-screen'>
       <Provider>
         <div className='main'>
           <div className='gradient' />
         </div>
 
-        <main className='app'>
+        <main className='app flex-1'>
           <Nav />
           {children}
         </main>

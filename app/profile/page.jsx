@@ -5,12 +5,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import Profile from "@components/Profile";
+import DeleteConfirmModal from "@components/DeleteConfirmModal";
 
 const MyProfile = () => {
   const router = useRouter();
   const { data: session } = useSession();
 
   const [myPosts, setMyPosts] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, post: null });
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -27,36 +29,47 @@ const MyProfile = () => {
     router.push(`/update-prompt?id=${post._id}`);
   };
 
-  const handleDelete = async (post) => {
-    const hasConfirmed = confirm(
-      "Are you sure you want to delete this prompt?"
-    );
+  const handleDelete = (post) => {
+    setDeleteModal({ isOpen: true, post });
+  };
 
-    if (hasConfirmed) {
-      try {
-        await fetch(`/api/prompt/${post._id.toString()}`, {
-          method: "DELETE",
-        });
+  const confirmDelete = async () => {
+    const post = deleteModal.post;
+    try {
+      await fetch(`/api/prompt/${post._id.toString()}`, {
+        method: "DELETE",
+      });
 
-        const filteredPosts = myPosts.filter((item) => item._id !== post._id);
-
-        setMyPosts(filteredPosts);
-      } catch (error) {
-        console.log(error);
-      }
+      const filteredPosts = myPosts.filter((item) => item._id !== post._id);
+      setMyPosts(filteredPosts);
+      setDeleteModal({ isOpen: false, post: null });
+    } catch (error) {
+      console.error("Delete failed:", error);
+      setDeleteModal({ isOpen: false, post: null });
     }
   };
 
+  const cancelDelete = () => {
+    setDeleteModal({ isOpen: false, post: null });
+  };
+
   return (
-    <Profile
-      name={session?.user.name || "My"}
-      desc={`Welcome to your personalized profile page, ${
-        session?.user.name || "My"
-      }. Share your exceptional prompts and inspire others with the power of your imagination`}
-      data={myPosts}
-      handleEdit={handleEdit}
-      handleDelete={handleDelete}
-    />
+    <>
+      <DeleteConfirmModal
+        isOpen={deleteModal.isOpen}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
+      <Profile
+        name={session?.user.name || "My"}
+        desc={`Welcome to your personalized profile page, ${
+          session?.user.name || "My"
+        }. Share your exceptional prompts and inspire others with the power of your imagination`}
+        data={myPosts}
+        handleEdit={handleEdit}
+        handleDelete={handleDelete}
+      />
+    </>
   );
 };
 

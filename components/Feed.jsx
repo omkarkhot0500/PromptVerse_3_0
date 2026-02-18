@@ -27,10 +27,20 @@ const Feed = () => {
   const [searchedResults, setSearchedResults] = useState([]);
 
   const fetchPosts = async () => {
-    const response = await fetch("/api/prompt");
-    const data = await response.json();
-
-    setAllPosts(data);
+    try {
+      const response = await fetch("/api/prompt", {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAllPosts(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch posts:", error);
+    }
   };
 
   useEffect(() => {

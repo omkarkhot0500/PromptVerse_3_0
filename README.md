@@ -104,7 +104,7 @@ Fresh data is fetched on every request. No caching occurs.
 async function Page({ params }) {
   const res = await fetch(
     `https://jsonplaceholder.typicode.com/posts/${params.id}`,
-    { cache: "no-store" }
+    { cache: "no-store" },
   );
   const data = await res.json();
   return <pre>{JSON.stringify(data)}</pre>;
@@ -119,7 +119,7 @@ Default behavior. Data is fetched at build time and cached permanently.
 
 ```js
 const res = await fetch(
-  `https://jsonplaceholder.typicode.com/posts/${params.id}`
+  `https://jsonplaceholder.typicode.com/posts/${params.id}`,
 );
 const data = await res.json();
 ```
@@ -133,7 +133,7 @@ Static pages that automatically refresh after a defined interval.
 ```js
 const res = await fetch(
   `https://jsonplaceholder.typicode.com/posts/${params.id}`,
-  { next: { revalidate: 10 } }
+  { next: { revalidate: 10 } },
 );
 const data = await res.json();
 ```
@@ -195,7 +195,6 @@ export async function generateMetadata({ params }) {
 
 Metadata automatically updates the `<head>` tag and improves SEO and social sharing.
 
-
 # Google OAuth Login Flow – NextAuth + MongoDB (Interview Revision Guide)
 
 This project uses Google OAuth with NextAuth and MongoDB for authentication. This document explains the complete login architecture step-by-step in simple but interview-level detail. It is written as a fast revision sheet that explains not only what happens, but why it happens.
@@ -214,8 +213,8 @@ MongoDB → stores app users
 Session → remembers login state  
 App → uses authenticated user data
 
-OAuth proves *who you are*.  
-Database stores *who you are inside the app*.
+OAuth proves _who you are_.  
+Database stores _who you are inside the app_.
 
 ## Step 1 – User clicks “Login with Google”
 
@@ -240,7 +239,7 @@ Your app never sees the password. Google handles authentication security.
 NextAuth runs:
 
 ```js
-callbacks.signIn()
+callbacks.signIn();
 ```
 
 This callback decides whether login should continue.
@@ -303,7 +302,7 @@ This ensures app-level identity separate from Google.
 ## Step 5 – Generate unique username
 
 ```js
-generateUniqueUsername(profile.name)
+generateUniqueUsername(profile.name);
 ```
 
 Purpose:
@@ -338,7 +337,7 @@ Username generation is deterministic but collision-safe.
 await User.create({
   email,
   username,
-  image
+  image,
 });
 ```
 
@@ -396,7 +395,7 @@ This is how login persists across page reloads.
 NextAuth runs:
 
 ```js
-callbacks.session()
+callbacks.session();
 ```
 
 This callback customizes what data goes inside the session.
@@ -421,8 +420,8 @@ const sessionUser = await User.findOne(...)
 Then attaches:
 
 ```js
-session.user.id
-session.user.username
+session.user.id;
+session.user.username;
 ```
 
 Final session object:
@@ -480,7 +479,6 @@ We use NextAuth with Google OAuth. When a user logs in, they are redirected to G
 
 This demonstrates understanding of authentication, sessions, cookies, and identity separation.
 
-
 ## Quick Interview Memory Map
 
 Server Component → default, fast, no hooks  
@@ -499,10 +497,6 @@ metadata → SEO control
 
 This architecture allows Next.js to unify frontend rendering, backend logic, routing, performance optimization, and SEO into one framework.
 
-
-
-
-
 ## Features
 
 - To create prompts and share them .
@@ -513,14 +507,13 @@ This architecture allows Next.js to unify frontend rendering, backend logic, rou
 
 ## Tech Stack
 
- Next, TailwindCSS
-
+Next, TailwindCSS
 
 ## Installation
 
-  Go to  omkarkhot0500@gmail.com in google cloud console
-  --> change My First Project to PromptVerse 
-  ----> Credentials 
+Go to omkarkhot0500@gmail.com in google cloud console
+--> change My First Project to PromptVerse
+----> Credentials
 
 Install my-project with npm
 
@@ -528,25 +521,170 @@ Install my-project with npm
   git clone my-project
   cd my-project
 ```
-  npm install
 
-  npm run dev 
-## Deployment  --  Render      ( It need's 50s to start )
+npm install
+
+npm run dev
+
+## Deployment -- Render ( It need's 50s to start )
 
 To deploy this project run
 
+[https://prompt-verse-k.vercel.app/](https://prompt-verse-3-0.vercel.app/)
 
-  [https://prompt-verse-k.vercel.app/](https://prompt-verse-3-0.vercel.app/)
+# 🐳 Docker Setup – PromptVerse (Next.js + NextAuth + MongoDB)
 
+This project can be run using Docker in two ways:
 
+1. Docker build + docker run
+2. Docker Compose (Recommended)
 
-## Environment Variables
+---
 
-To run this project, you will need to add the following environment variables to your .env file
+## 📦 Prerequisites
 
-`GOOGLE_ID =`
-`GOOGLE_CLIENT_SECRET=`
-`MONGODB_URI =`
-`NEXTAUTH_URL =`   -- add the URL of deployed frontend
-`NEXTAUTH_URL_INTERNAL =`  -- add the URL o f deployed frontend
-`NEXTAUTH_SECRET =`
+Make sure you have:
+
+- Docker installed
+- Docker Compose installed (comes with Docker Desktop)
+
+Check installation:
+
+docker --version  
+docker compose version
+
+---
+
+## 🚀 Method 1 – Using Docker Build & Run
+
+### 1️⃣ Clone Repository
+
+git clone https://github.com/your-username/promptverse.git  
+cd promptverse
+
+---
+
+### 2️⃣ Create `.env` File
+
+Create a file named `.env` in the root directory:
+
+GOOGLE_ID=your_google_client_id  
+GOOGLE_CLIENT_SECRET=your_google_client_secret  
+MONGODB_URI=your_mongodb_connection_string  
+NEXTAUTH_URL=http://localhost:3000  
+NEXTAUTH_URL_INTERNAL=http://localhost:3000  
+NEXTAUTH_SECRET=your_random_secret
+
+---
+
+### 3️⃣ Build Docker Image
+
+docker build -t promptverse .
+
+---
+
+### 4️⃣ Run Container
+
+docker run -p 3000:3000 --env-file .env promptverse
+
+---
+
+### ✅ Open in Browser
+
+http://localhost:3000
+
+---
+
+## Method 2 – Using Docker Compose (Recommended)
+
+This is the cleaner and preferred open-source method.
+
+---
+
+### 1️⃣ Create `.env` File
+
+GOOGLE_ID=your_google_client_id  
+GOOGLE_CLIENT_SECRET=your_google_client_secret  
+MONGODB_URI=your_mongodb_connection_string  
+NEXTAUTH_URL=http://localhost:3000  
+NEXTAUTH_URL_INTERNAL=http://localhost:3000  
+NEXTAUTH_SECRET=your_random_secret
+
+---
+
+### 2️⃣ Create `.env.example`
+
+Create a file named `.env`:
+
+GOOGLE_ID=  
+GOOGLE_CLIENT_SECRET=  
+MONGODB_URI=  
+NEXTAUTH_URL=http://localhost:3000  
+NEXTAUTH_URL_INTERNAL=http://localhost:3000  
+NEXTAUTH_SECRET=
+
+---
+
+### 3️⃣ Run Docker Compose
+
+Build and start:
+
+docker compose up --build
+
+Run in background:
+
+docker compose up -d --build
+
+---
+
+### 4️⃣ Stop Containers
+
+docker compose down
+
+---
+
+## Method 3 using pre-built image
+
+# 🐳 Docker Hub
+
+The project is available as a public Docker image:
+
+docker pull omkarkhot0500/promptverseapp:latest
+
+Run the container:
+
+docker run -p 3000:3000 --env-file .env omkarkhot0500/promptverseapp:latest
+
+Application will be available at:
+
+http://localhost:3000
+
+## 📂 Project Structure
+
+promptverse/  
+│── Dockerfile  
+│── docker-compose.yml  
+│── .dockerignore  
+│── .env  
+│── package.json  
+│── next.config.js
+
+---
+
+## 🔐 Environment Variables
+
+GOOGLE_ID → Google OAuth Client ID  
+GOOGLE_CLIENT_SECRET → Google OAuth Secret  
+MONGODB_URI → MongoDB Atlas connection string  
+NEXTAUTH_URL → App URL  
+NEXTAUTH_SECRET → Authentication secret
+
+Generate secret:
+
+openssl rand -base64 32
+
+---
+
+App runs at:
+
+http://localhost:3000

@@ -11,7 +11,7 @@ const CreatePrompt = () => {
   const { data: session } = useSession();
 
   const [submitting, setIsSubmitting] = useState(false);
-  const [post, setPost] = useState({ prompt: "", tag: "", isPrivate: false });
+  const [post, setPost] = useState({ prompt: "", tag: "", isPrivate: false, isPermanent: false });
 
   const createPrompt = async (e) => {
     e.preventDefault();
@@ -25,6 +25,7 @@ const CreatePrompt = () => {
           userId: session?.user.id,
           tag: post.tag,
           isPrivate: post.isPrivate,
+          isPermanent: post.isPermanent,
         }),
       });
 

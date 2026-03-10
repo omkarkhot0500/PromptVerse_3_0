@@ -7,7 +7,7 @@ const UpdatePrompt = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const promptId = searchParams.get("id");
-  const [post, setPost] = useState({ prompt: "", tag: "", isPrivate: false });
+  const [post, setPost] = useState({ prompt: "", tag: "", isPrivate: false, isPermanent: false });
   const [submitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -18,6 +18,7 @@ const UpdatePrompt = () => {
         prompt: data.prompt,
         tag: data.tag,
         isPrivate: data.isPrivate || false,
+        isPermanent: data.expiresAt === null || data.expiresAt === undefined,
       });
     };
     if (promptId) getPromptDetails();
@@ -34,6 +35,7 @@ const UpdatePrompt = () => {
           prompt: post.prompt,
           tag: post.tag,
           isPrivate: post.isPrivate,
+          isPermanent: post.isPermanent,
         }),
       });
       if (response.ok) {

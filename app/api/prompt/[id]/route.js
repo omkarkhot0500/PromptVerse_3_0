@@ -1,6 +1,8 @@
 import Prompt from "@models/prompt";
 import { connectToDB } from "@utils/database";
 
+export const dynamic = "force-dynamic";
+
 export const GET = async (request, { params }) => {
     try {
         await connectToDB()
@@ -21,7 +23,7 @@ export const GET = async (request, { params }) => {
 }
 
 export const PATCH = async (request, { params }) => {
-    const { prompt, tag, isPrivate } = await request.json();
+    const { prompt, tag, isPrivate, isPermanent } = await request.json();
 
     try {
         await connectToDB();
@@ -32,17 +34,18 @@ export const PATCH = async (request, { params }) => {
             return new Response("Prompt not found", { status: 404 });
         }
 
-        // NEW: Handle visibility change logic
-        const wasPrivate = existingPrompt.isPrivate;
-        const isNowPublic = !isPrivate && wasPrivate;
-
         existingPrompt.prompt = prompt;
         existingPrompt.tag = tag;
         existingPrompt.isPrivate = isPrivate;
 
-        // NEW: Set expiresAt only when changing from private to public
-        if (isNowPublic) {
+        // NEW: Handle expiry logically
+        if (!isPrivate && !isPermanent) {
+            // Set for 24 hours if it's a public vanishing prompt
+            // Always refresh expiry on update if it's vanishing
             existingPrompt.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        } else {
+            // No expiry for private or permanent public prompts
+            existingPrompt.expiresAt = null;
         }
 
         await existingPrompt.save();

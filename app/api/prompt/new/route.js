@@ -2,7 +2,7 @@ import Prompt from "@models/prompt";
 import { connectToDB } from "@utils/database";
 
 export const POST = async (request) => {
-  const { userId, prompt, tag, isPrivate } = await request.json();
+  const { userId, prompt, tag, isPrivate, isPermanent } = await request.json();
 
   try {
     await connectToDB();
@@ -13,13 +13,14 @@ export const POST = async (request) => {
       isPrivate: isPrivate || false,
     });
 
-    // Set expiresAt for public prompts (24 hours from now)
-    if (!isPrivate) {
+    // Set expiresAt for public prompts (24 hours from now if NOT permanent)
+    if (!isPrivate && !isPermanent) {
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       newPrompt.expiresAt = expiresAt;
-      console.log(`Public prompt created - Expires at: ${expiresAt.toISOString()}`);
+      console.log(`Public vanishing prompt created - Expires at: ${expiresAt.toISOString()}`);
     } else {
-      console.log("Private prompt created - No expiry");
+      newPrompt.expiresAt = null; // No expiry for private or permanent public prompts
+      console.log(`${isPrivate ? "Private" : "Permanent Public"} prompt created - No expiry`);
     }
 
     const savedPrompt = await newPrompt.save();

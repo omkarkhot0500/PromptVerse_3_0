@@ -5,15 +5,18 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import Profile from "@components/Profile";
+import PromptCardSkeleton from "@components/PromptCardSkeleton";
 
 const MyProfile = () => {
   const router = useRouter();
   const { data: session } = useSession();
 
   const [myPosts, setMyPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchPosts = async () => {
+      setIsLoading(true);
       try {
         const response = await fetch(`/api/users/${session?.user.id}/posts`);
 
@@ -25,10 +28,13 @@ const MyProfile = () => {
         setMyPosts(data);
       } catch (error) {
         console.error("Error fetching user posts:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     if (session?.user.id) fetchPosts();
+    else setIsLoading(false);
   }, [session?.user.id]);
 
   const handleEdit = (post) => {
@@ -64,6 +70,7 @@ const MyProfile = () => {
       data={myPosts}
       handleEdit={handleEdit}
       handleDelete={handleDelete}
+      isLoading={isLoading}
     />
   );
 };

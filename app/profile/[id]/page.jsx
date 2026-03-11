@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import Profile from "@components/Profile";
+import PromptCardSkeleton from "@components/PromptCardSkeleton";
 
 const UserProfile = ({ params }) => {
   const searchParams = useSearchParams();
@@ -13,6 +14,7 @@ const UserProfile = ({ params }) => {
   const router = useRouter();
 
   const [userPosts, setUserPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Prevent access to other users' profiles if not logged in
@@ -22,6 +24,7 @@ const UserProfile = ({ params }) => {
     }
 
     const fetchPosts = async () => {
+      setIsLoading(true);
       try {
         const response = await fetch(`/api/users/${params?.id}/posts`);
 
@@ -33,10 +36,13 @@ const UserProfile = ({ params }) => {
         setUserPosts(data);
       } catch (error) {
         console.error("Error fetching user posts:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     if (params?.id && status !== "loading") fetchPosts();
+    else if (status !== "loading") setIsLoading(false);
   }, [params.id, session, status, router]);
 
   return (
@@ -44,6 +50,7 @@ const UserProfile = ({ params }) => {
       name={userName}
       desc={`Welcome to ${userName}'s personalized profile page. Explore ${userName}'s exceptional prompts and be inspired by the power of their imagination`}
       data={userPosts}
+      isLoading={isLoading}
     />
   );
 };

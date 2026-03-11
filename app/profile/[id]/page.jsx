@@ -22,10 +22,18 @@ const UserProfile = ({ params }) => {
     }
 
     const fetchPosts = async () => {
-      const response = await fetch(`/api/users/${params?.id}/posts`);
-      const data = await response.json();
+      try {
+        const response = await fetch(`/api/users/${params?.id}/posts`);
 
-      setUserPosts(data);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch user posts: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setUserPosts(data);
+      } catch (error) {
+        console.error("Error fetching user posts:", error);
+      }
     };
 
     if (params?.id && status !== "loading") fetchPosts();

@@ -25,10 +25,19 @@ const PromptCard = ({ post, handleEdit, handleDelete, handleTagClick }) => {
     router.push(`/profile/${post.creator._id}?name=${post.creator.username}`);
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     setCopied(post.prompt);
     navigator.clipboard.writeText(post.prompt);
     setTimeout(() => setCopied(false), 3000);
+
+    // NEW: Track copy in background
+    try {
+      await fetch(`/api/prompt/${post._id}/copy`, {
+        method: "PATCH",
+      });
+    } catch (error) {
+      console.error("Failed to track copy", error);
+    }
   };
 
   // NEW: Calculate time until expiry

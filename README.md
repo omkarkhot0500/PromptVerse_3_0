@@ -479,6 +479,47 @@ We use NextAuth with Google OAuth. When a user logs in, they are redirected to G
 
 This demonstrates understanding of authentication, sessions, cookies, and identity separation.
 
+## How the "Most Copied" System Works Now (in the exact order it happens):
+
+Yes, it is entirely based on the "Copy" button being clicked! Here is exactly how the math works behind the scenes to put it at the beginning of the feed:
+
+The Button Click: When a user clicks the copy button on a prompt, the system looks at the current date and time (e.g., March 16th, 1:30 PM) and secretly saves that exact timestamp to that prompt in the database.
+The "7-Day" Rule: It then deletes any timestamps on that prompt that are older than 7 days. This means the prompt only gets credit for recent copies!
+The Counting Game: Let's say:
+Prompt A was copied 10 times this week.
+Prompt B was copied 5 times this week.
+Prompt C was copied 0 times this week.
+The Homepage Load: When someone opens the homepage, the 
+
+Feed.jsx
+ file looks at all the prompts and counts up those saved timestamps.
+The Sorting: It sorts the prompts from highest to lowest based on that count. It grabs the top 3 heavily copied prompts (in our example, Prompt A, then Prompt B).
+The Assembly: It safely places those top 3 prompts at the very front of the array. Then, it places every other prompt underneath them in chronological order.
+The Display: Finally, it hands that newly organized list to the map function to render the cards.
+
+##  Handled by the Server (The Backend: /api/prompt/[id]/copy)
+
+These steps happen invisibly on your server and database:
+
+The Button Click Setup: The server receives the background message from the user's browser.
+Saving the Timestamp: The server looks up the current date and time and saves it to MongoDB.
+The "7-Day" Rule Auto-Cleanup: The server does the math, finds old dates, permanently deletes them from MongoDB, and saves the new cleaned array.
+
+## 💻 Handled by the Browser (The Frontend: 
+
+components/Feed.jsx
+)
+
+Because your frontend (
+
+Feed.jsx
+) already fetches ALL the public prompts from the server to display them, we let the user's browser do the rest of the work. This saves you a ton of database computing power!
+
+The Counting Game & Homepage Load: When the browser downloads the prompts, it looks at the lengths of the arrays that the server just handed it.
+The Sorting: React (Javascript) inside your frontend runs the high-to-low sort.
+The Assembly: React slices the top 3 and moves them to the front of the list.
+The Display: React paints them to the user's screen.
+
 ## Quick Interview Memory Map
 
 Server Component → default, fast, no hooks  

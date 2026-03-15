@@ -23,6 +23,11 @@ const PromptSchema = new Schema({
     default: null,
     index: true, // Index for efficient cleanup queries
   },
+  // NEW: Track recent copies for trending logic
+  recentCopyDates: {
+    type: [Date],
+    default: [],
+  },
   createdAt: {
     type: Date,
     default: Date.now,

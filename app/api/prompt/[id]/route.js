@@ -1,6 +1,7 @@
 import Prompt from "@models/prompt";
 import User from "@models/user";
 import { connectToDB } from "@utils/database";
+import redis from "@utils/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,15 @@ export const PATCH = async (request, { params }) => {
 
         await existingPrompt.save();
 
+        // CACHE INVALIDATION
+        try {
+            await redis.del('feed:homepage');
+            await redis.del(`user:${existingPrompt.creator}:prompts`);
+            console.log(`[Cache Invalidation] Cleared feed and user cache after update`);
+        } catch (redisError) {
+            console.error("Redis invalidation error:", redisError);
+        }
+
         return new Response(JSON.stringify(existingPrompt), { status: 200 });
     } catch (error) {
         return new Response("Error Updating Prompt", { status: 500 });
@@ -62,7 +72,18 @@ export const DELETE = async (request, { params }) => {
         await connectToDB();
 
         // Find the prompt by ID and remove it
-        await Prompt.findByIdAndRemove(params.id);
+        const deletedPrompt = await Prompt.findByIdAndDelete(params.id);
+
+        if (deletedPrompt) {
+            // CACHE INVALIDATION
+            try {
+                await redis.del('feed:homepage');
+                await redis.del(`user:${deletedPrompt.creator}:prompts`);
+                console.log(`[Cache Invalidation] Cleared feed and user cache after deletion`);
+            } catch (redisError) {
+                console.error("Redis invalidation error:", redisError);
+            }
+        }
 
         return new Response("Prompt deleted successfully", { status: 200 });
     } catch (error) {

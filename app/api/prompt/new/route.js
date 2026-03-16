@@ -1,5 +1,6 @@
 import Prompt from "@models/prompt";
 import { connectToDB } from "@utils/database";
+import redis from "@utils/redis";
 
 export const POST = async (request) => {
   const { userId, prompt, tag, isPrivate, isPermanent } = await request.json();
@@ -25,6 +26,15 @@ export const POST = async (request) => {
 
     const savedPrompt = await newPrompt.save();
     console.log(`Prompt saved successfully with ID: ${savedPrompt._id}`);
+
+    // CACHE INVALIDATION
+    try {
+      await redis.del('feed:homepage');
+      await redis.del(`user:${userId}:prompts`);
+      console.log(`[Cache Invalidation] Cleared feed and user cache`);
+    } catch (redisError) {
+      console.error("Redis invalidation error:", redisError);
+    }
 
     return new Response(JSON.stringify(savedPrompt), { status: 201 });
   } catch (error) {

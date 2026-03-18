@@ -521,6 +521,19 @@ The Assembly: React slices the top 3 and moves them to the front of the list.
 The Display: React paints them to the user's screen.
 
 # Rate Limiting Logic – Redis + Token Bucket (Interview Revision Guide)
+“In PromptVerse, I implemented rate limiting using the Token Bucket algorithm with Redis.
+
+Each user has a bucket of tokens stored in Redis. Every request (like creating or updating a prompt) consumes one token.
+
+Tokens refill at a fixed rate (for example, X requests per minute)
+
+If tokens are available → request is allowed
+
+If tokens are exhausted → the API returns a 429 (Too Many Requests)
+
+I used Redis because it’s fast and supports atomic operations, so it works well for real-time rate limiting across multiple users and servers.
+
+This helped me prevent abuse like spamming prompt creation while still allowing small bursts of activity.”
 
 To protect the server from abuse and manage API costs (especially AI generation), we implement a **Token Bucket** rate-limiting system using **Upstash Redis**.
 

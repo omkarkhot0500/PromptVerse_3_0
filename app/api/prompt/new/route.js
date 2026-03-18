@@ -1,6 +1,7 @@
 import Prompt from "@models/prompt";
 import { connectToDB } from "@utils/database";
 import redis from "@utils/redis";
+import { calculateExpiry } from "@utils/prompt";
 
 export const POST = async (request) => {
   const { userId, prompt, tag, isPrivate, isPermanent } = await request.json();
@@ -14,13 +15,12 @@ export const POST = async (request) => {
       isPrivate: isPrivate || false,
     });
 
-    // Set expiresAt for public prompts (24 hours from now if NOT permanent)
-    if (!isPrivate && !isPermanent) {
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      newPrompt.expiresAt = expiresAt;
-      console.log(`Public vanishing prompt created - Expires at: ${expiresAt.toISOString()}`);
+    // Set expiration using dynamic utility
+    newPrompt.expiresAt = calculateExpiry(isPrivate, isPermanent);
+    
+    if (newPrompt.expiresAt) {
+      console.log(`Public vanishing prompt created - Expires at: ${newPrompt.expiresAt.toISOString()}`);
     } else {
-      newPrompt.expiresAt = null; // No expiry for private or permanent public prompts
       console.log(`${isPrivate ? "Private" : "Permanent Public"} prompt created - No expiry`);
     }
 

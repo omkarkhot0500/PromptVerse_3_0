@@ -520,23 +520,86 @@ The Sorting: React (Javascript) inside your frontend runs the high-to-low sort.
 The Assembly: React slices the top 3 and moves them to the front of the list.
 The Display: React paints them to the user's screen.
 
-## Quick Interview Memory Map
+# Rate Limiting Logic – Redis + Token Bucket (Interview Revision Guide)
+“In PromptVerse, I implemented rate limiting using the Token Bucket algorithm with Redis.
 
-Server Component → default, fast, no hooks  
-Client Component → `"use client"` interactive  
-app folder → routing system  
-page.jsx → route entry  
-[id] folder → dynamic routing  
-layout.jsx → shared UI wrapper  
-loading.jsx → async fallback  
-error.jsx → error boundary  
-SSR → fresh every request  
-SSG → build-time static  
-ISR → timed refresh  
-app/api/.../route.js → backend endpoint  
-metadata → SEO control
+Each user has a bucket of tokens stored in Redis. Every request (like creating or updating a prompt) consumes one token.
 
-This architecture allows Next.js to unify frontend rendering, backend logic, routing, performance optimization, and SEO into one framework.
+Tokens refill at a fixed rate (for example, X requests per minute)
+
+If tokens are available → request is allowed
+
+If tokens are exhausted → the API returns a 429 (Too Many Requests)
+
+I used Redis because it’s fast and supports atomic operations, so it works well for real-time rate limiting across multiple users and servers.
+
+This helped me prevent abuse like spamming prompt creation while still allowing small bursts of activity.”
+
+To protect the server from abuse and manage API costs (especially AI generation), we implement a **Token Bucket** rate-limiting system using **Upstash Redis**.
+
+## Big Picture Architecture
+
+User Request → Middleware → Redis Check → Allow/Reject → API Route
+
+The middleware acts as a gatekeeper for specific routes like `/api/prompt/new` and `/api/auth/*`.
+
+## The Algorithm: Token Bucket
+
+Imagine a bucket that holds a maximum number of "tokens". Each request costs 1 token.
+- **Burst Capacity**: Users can use up all tokens in the bucket instantly (e.g., 10 prompts in a row).
+- **Steady State**: Tokens are added back to the bucket at a fixed rate (e.g., 1 per second).
+
+This allows for quick bursts of activity while enforcing a strict long-term limit.
+
+## Step 1 – Identify the User
+
+We need to know who to limit. The system checks:
+1. **NextAuth Token**: If logged in, we use their unique `email` or `userId`.
+2. **IP Address**: If not logged in, we fall back to the `x-forwarded-for` header or the connection IP.
+
+Key Format: `rate_limit:<identifier>:<path>`
+
+**Examples:**
+- **Logged-in User:** `rate_limit:user@example.com:/api/prompt/new`
+- **Anonymous User (IP-based):** `rate_limit:123.45.67.89:/api/auth/signin`
+- **Fallback:** `rate_limit:anonymous:/api/auth/signup`
+
+## Step 2 – Fetch State from Redis
+
+We store two values in Redis for every user:
+- `tokens`: Current number of tokens left.
+- `lastTime`: Timestamp of the last request.
+
+## Step 3 – Calculate Refill (The "Time-Engine")   --> Imp <--
+
+Instead of a background process, we calculate refills "on-the-fly" whenever a request hits:
+```js
+timePassed = currentTime - lastTime;
+tokensToAdd = timePassed * refillRate;
+newTokens = Math.min(bucketSize, tokens + tokensToAdd);
+```
+This is extremely memory-efficient as it only calculates state when needed.
+
+## Step 4 – Decision & Update
+
+- **If `newTokens >= 1`**:
+  - Subtract 1 token.
+  - Update Redis with `newTokens - 1` and `currentTime`.
+  - Continue to the API.
+- **If `newTokens < 1`**:
+  - Return **429 Too Many Requests**.
+
+## Why use Redis?
+
+1. **Stateless Compliance**: Serverless functions (Vercel) lose their local memory between requests. Redis provides external, persistent memory.
+2. **Speed**: Sub-millisecond latency ensures rate limiting doesn't slow down the user experience.
+3. **Global State**: If you have multiple server instances, they all check the SAME Redis bucket, ensuring limits are enforced globally across the whole app.
+
+## Interview Insights
+
+- **Middleware vs. API Logic**: We run this in `middleware.js` to stop requests *before* they wake up heavy API routes, saving server costs.
+- **Fail-Soft Design**: If Redis is down, we use a `try-catch` to allow the request. It's better to allow an extra request than to break the site for a legitimate user due to an infrastructure glitch.
+- **Headers**: We return `X-RateLimit-Remaining` so the frontend can warn the user before they get blocked.
 
 ## Features
 

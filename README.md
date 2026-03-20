@@ -216,142 +216,87 @@ App → uses authenticated user data
 OAuth proves _who you are_.  
 Database stores _who you are inside the app_.
 
-## Step 1 – User clicks “Login with Google”
+## Phase 1: The "Click" (Frontend)
+When the user clicks "Sign In with Google", your frontend calls a function like 
 
-Frontend triggers:
+signIn('google')
+.
 
-```js
-signIn("google");
-```
+What happens: Your app doesn't actually talk to Google yet. It redirects the user to a special Google URL with your clientId.
+The "Ask": This URL includes "Scopes". By default, NextAuth asks for openid, email, and profile. This is why Google shows the popup saying "PromptVerse wants to access your name and email."
 
-NextAuth automatically redirects the user to Google’s OAuth login page. The user logs in and grants permission. Google returns profile information to NextAuth backend:
+## Phase 2: The Google Handshake (Authorization Code)
+The user clicks "Allow" on Google's page.
 
-- email
-- name
-- profile picture
-- OAuth token
+The Return: Google redirects the user back to your app (specifically to your-app.com/api/auth/callback/google) with a temporary Authorization Code in the URL.
+Crucial Note: This code is not the auth token. It’s a one-time-use "coupon" that your server must exchange.
 
-Important interview point:  
-Your app never sees the password. Google handles authentication security.
+## Phase 3: The Secret Exchange (Server-to-Server)
+Now, your Server (behind the scenes) takes that temporary code and sends it back to Google, along with your clientSecret (which stays hidden on the server).
 
-## Step 2 – NextAuth receives Google profile
+The Exchange: Your server says: "Hey Google, I have this code from the user, and here is my Secret key to prove I'm the real PromptVerse app. Give me the real tokens."
+What Google returns: Google sends back an object containing:
+access_token: Used to call Google APIs (like Google Contacts or Drive).
+id_token: This is a JWT (JSON Web Token) that contains the user's identity.
 
-NextAuth runs:
+## Phase 4: Does the token contain contact info?
+Yes, but it depends on the Scopes.
 
-```js
-callbacks.signIn();
-```
+Because you are using the default Google provider, the id_token is a signed package that contains:
+email: The user's email address.
 
-This callback decides whether login should continue.
+name
+: Their full name.
+picture: The URL to their profile photo.
+sub: A unique Google ID for that user (it never changes).
+If you need more (like Phone Numbers): You would have to add a contact.read scope. The token itself wouldn't contain all 500 contacts, but the access_token would give your server permission to go ask Google for them separately.
 
-```js
-async signIn({ account, profile })
-```
+## Phase 5: The "Real Developer" Logic (Your Code)
+Once NextAuth gets those tokens, it triggers the callbacks you wrote in 
 
-`profile` contains:
+route.js
+:
 
-- profile.email
-- profile.name
-- profile.picture
 
-At this stage the app decides:
+signIn
+ Callback (
 
-Should this user be allowed?  
-Should we create a database record?
+L81-127
+):
 
-This is the gatekeeper step of authentication.
+Your server looks at the profile (the data inside the id_token).
+It checks your MongoDB: User.findOne({ email: profile.email }).
+If the user is new, it runs your 
 
-## Step 3 – Connect to database
+generateUniqueUsername
+ logic and creates a new document in MongoDB.
+It returns true to allow the login.
 
-```js
-await connectToDB();
-```
+session
+ Callback (
 
-We connect to MongoDB inside the signIn callback before checking anything.
+L63-79
+):
 
-Interview explanation:  
-We must connect to the database before login completes so we can verify or create user records atomically during authentication.
+## Here is what happens after your server gets that Google JWT:
 
-Authentication should never finish without database consistency.
+## 1. The "NextAuth JWT" is Born
+Wait, there are actually two different JWTs involved.
 
-## Step 4 – Check if user exists
+Google's JWT: This is just a "guest pass" Google gave you to prove the user's name/email. Once your server verifies it, your server "throws it away" because it’s only valid for a short time.
+Your App's JWT (NextAuth JWT): NextAuth creates its own brand new JWT. It takes the user's ID and email, encrypts it with your NEXTAUTH_SECRET (the one in your 
 
-```js
-const userExists = await User.findOne({ email: profile.email });
-```
+.env
+), and signs it.
 
-We search MongoDB using the email.
+## 2. Is it sent as a cookie? YES.
+But it’s not just any cookie. NextAuth sends it back to the client as an HttpOnly and Secure cookie (usually named next-auth.session-token).
 
-Two possible outcomes:
+Why this matters (Security):
 
-### Case A – Existing user
-
-User is found → allow login  
-No new account is created
-
-NextAuth continues authentication normally.
-
-### Case B – New user
-
-User not found → create a new account
-
-But before creating the user, we generate a unique username.
-
-This ensures app-level identity separate from Google.
-
-## Step 5 – Generate unique username
-
-```js
-generateUniqueUsername(profile.name);
-```
-
-Purpose:
-
-- convert Google name into safe username
-- enforce formatting rules
-- guarantee uniqueness in DB
-
-Internally the function:
-
-- removes spaces
-- converts to lowercase
-- strips special characters
-- enforces 8–20 characters
-- checks database uniqueness
-- appends numbers if duplicate
-
-Example:
-
-"Omkar Khot" → omkarkhot  
-if exists → omkarkhot1  
-if exists → omkarkhot2
-
-Loop continues until a unique username is found.
-
-Interview insight:  
-Username generation is deterministic but collision-safe.
-
-## Step 6 – Create MongoDB user
-
-```js
-await User.create({
-  email,
-  username,
-  image,
-});
-```
-
-Now the app has an internal user record.
-
-Important concept:
-
-OAuth authenticates identity  
-Database stores application identity
-
-Google says: “This is Omkar”  
-MongoDB says: “This is user #652839”
-
-Your app always works with database identity.
+HttpOnly: This means JavaScript on the frontend cannot read the cookie. If a hacker injects a malicious script (XSS), they can't steal the "passport."
+Secure: It only travels over HTTPS.
+SameSite: It prevents other websites from trying to use your session.
 
 ## What is a Session?
 

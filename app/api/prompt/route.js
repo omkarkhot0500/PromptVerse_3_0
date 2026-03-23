@@ -73,7 +73,7 @@ export const GET = async (request) => {
                 as: "creator"
             }
         });
-        pipeline.push({ $unwind: "$creator" });
+        pipeline.push({ $unwind: { path: "$creator", preserveNullAndEmptyArrays: true } });
         console.log(`[Feed] Cache miss. Fetching public prompts from DB. Current time: ${now.toISOString()}`);
 
         // 4. Sort results

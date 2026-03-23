@@ -424,6 +424,37 @@ We use NextAuth with Google OAuth. When a user logs in, they are redirected to G
 
 This demonstrates understanding of authentication, sessions, cookies, and identity separation.
 
+# MongoDB Atlas Search
+
+"When I first built the prompt feed, I was doing what most people do—fetching all the data and filtering it on the frontend with a simple JavaScript. It worked fine with 10 prompts, but I knew that as soon as the platform grew, that approach would fall apart. It’s like downloading an entire library just to find one book—it’s a massive waste of bandwidth and would eventually crash the user's browser.
+
+## So, I decided to move the 'heavy lifting' to the database by implementing Full-Text Search (FTS) using MongoDB Atlas Search.
+
+If the interviewer leans in and asks, "Tell me more about the technical side," you can follow up with:
+
+### The Inverted Index: "Conceptually, I set up an inverted index. Think of it like the index at the back of a textbook. Instead of reading the whole book front-to-back, the DB just looks at the word 'React' and immediately knows every page (or document) that contains it."
+
+### Analyzers: "I used a 'standard analyzer' for the prompt text so it ignores 'stop words' like the, is, at. This ensures that searching for 'The best coding prompt' focuses on the words 'best', 'coding', and 'prompt' rather than the word 'the'."
+
+### The Pipeline: "I moved the logic into a MongoDB Aggregation Pipeline. This allows me to combine the $search stage with things like $limit or $sort in one single, efficient trip to the database."
+
+## Quick Interview Memory Map
+
+Server Component → default, fast, no hooks  
+Client Component → `"use client"` interactive  
+app folder → routing system  
+page.jsx → route entry  
+[id] folder → dynamic routing  
+layout.jsx → shared UI wrapper  
+loading.jsx → async fallback  
+error.jsx → error boundary  
+SSR → fresh every request  
+SSG → build-time static  
+ISR → timed refresh  
+app/api/.../route.js → backend endpoint  
+metadata → SEO control
+
+This architecture allows Next.js to unify frontend rendering, backend logic, routing, performance optimization, and SEO into one framework.
 ## How the "Most Copied" System Works Now (in the exact order it happens):
 
 Yes, it is entirely based on the "Copy" button being clicked! Here is exactly how the math works behind the scenes to put it at the beginning of the feed:

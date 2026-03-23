@@ -216,142 +216,87 @@ App → uses authenticated user data
 OAuth proves _who you are_.  
 Database stores _who you are inside the app_.
 
-## Step 1 – User clicks “Login with Google”
+## Phase 1: The "Click" (Frontend)
+When the user clicks "Sign In with Google", your frontend calls a function like 
 
-Frontend triggers:
+signIn('google')
+.
 
-```js
-signIn("google");
-```
+What happens: Your app doesn't actually talk to Google yet. It redirects the user to a special Google URL with your clientId.
+The "Ask": This URL includes "Scopes". By default, NextAuth asks for openid, email, and profile. This is why Google shows the popup saying "PromptVerse wants to access your name and email."
 
-NextAuth automatically redirects the user to Google’s OAuth login page. The user logs in and grants permission. Google returns profile information to NextAuth backend:
+## Phase 2: The Google Handshake (Authorization Code)
+The user clicks "Allow" on Google's page.
 
-- email
-- name
-- profile picture
-- OAuth token
+The Return: Google redirects the user back to your app (specifically to your-app.com/api/auth/callback/google) with a temporary Authorization Code in the URL.
+Crucial Note: This code is not the auth token. It’s a one-time-use "coupon" that your server must exchange.
 
-Important interview point:  
-Your app never sees the password. Google handles authentication security.
+## Phase 3: The Secret Exchange (Server-to-Server)
+Now, your Server (behind the scenes) takes that temporary code and sends it back to Google, along with your clientSecret (which stays hidden on the server).
 
-## Step 2 – NextAuth receives Google profile
+The Exchange: Your server says: "Hey Google, I have this code from the user, and here is my Secret key to prove I'm the real PromptVerse app. Give me the real tokens."
+What Google returns: Google sends back an object containing:
+access_token: Used to call Google APIs (like Google Contacts or Drive).
+id_token: This is a JWT (JSON Web Token) that contains the user's identity.
 
-NextAuth runs:
+## Phase 4: Does the token contain contact info?
+Yes, but it depends on the Scopes.
 
-```js
-callbacks.signIn();
-```
+Because you are using the default Google provider, the id_token is a signed package that contains:
+email: The user's email address.
 
-This callback decides whether login should continue.
+name
+: Their full name.
+picture: The URL to their profile photo.
+sub: A unique Google ID for that user (it never changes).
+If you need more (like Phone Numbers): You would have to add a contact.read scope. The token itself wouldn't contain all 500 contacts, but the access_token would give your server permission to go ask Google for them separately.
 
-```js
-async signIn({ account, profile })
-```
+## Phase 5: The "Real Developer" Logic (Your Code)
+Once NextAuth gets those tokens, it triggers the callbacks you wrote in 
 
-`profile` contains:
+route.js
+:
 
-- profile.email
-- profile.name
-- profile.picture
 
-At this stage the app decides:
+signIn
+ Callback (
 
-Should this user be allowed?  
-Should we create a database record?
+L81-127
+):
 
-This is the gatekeeper step of authentication.
+Your server looks at the profile (the data inside the id_token).
+It checks your MongoDB: User.findOne({ email: profile.email }).
+If the user is new, it runs your 
 
-## Step 3 – Connect to database
+generateUniqueUsername
+ logic and creates a new document in MongoDB.
+It returns true to allow the login.
 
-```js
-await connectToDB();
-```
+session
+ Callback (
 
-We connect to MongoDB inside the signIn callback before checking anything.
+L63-79
+):
 
-Interview explanation:  
-We must connect to the database before login completes so we can verify or create user records atomically during authentication.
+## Here is what happens after your server gets that Google JWT:
 
-Authentication should never finish without database consistency.
+## 1. The "NextAuth JWT" is Born
+Wait, there are actually two different JWTs involved.
 
-## Step 4 – Check if user exists
+Google's JWT: This is just a "guest pass" Google gave you to prove the user's name/email. Once your server verifies it, your server "throws it away" because it’s only valid for a short time.
+Your App's JWT (NextAuth JWT): NextAuth creates its own brand new JWT. It takes the user's ID and email, encrypts it with your NEXTAUTH_SECRET (the one in your 
 
-```js
-const userExists = await User.findOne({ email: profile.email });
-```
+.env
+), and signs it.
 
-We search MongoDB using the email.
+## 2. Is it sent as a cookie? YES.
+But it’s not just any cookie. NextAuth sends it back to the client as an HttpOnly and Secure cookie (usually named next-auth.session-token).
 
-Two possible outcomes:
+Why this matters (Security):
 
-### Case A – Existing user
-
-User is found → allow login  
-No new account is created
-
-NextAuth continues authentication normally.
-
-### Case B – New user
-
-User not found → create a new account
-
-But before creating the user, we generate a unique username.
-
-This ensures app-level identity separate from Google.
-
-## Step 5 – Generate unique username
-
-```js
-generateUniqueUsername(profile.name);
-```
-
-Purpose:
-
-- convert Google name into safe username
-- enforce formatting rules
-- guarantee uniqueness in DB
-
-Internally the function:
-
-- removes spaces
-- converts to lowercase
-- strips special characters
-- enforces 8–20 characters
-- checks database uniqueness
-- appends numbers if duplicate
-
-Example:
-
-"Omkar Khot" → omkarkhot  
-if exists → omkarkhot1  
-if exists → omkarkhot2
-
-Loop continues until a unique username is found.
-
-Interview insight:  
-Username generation is deterministic but collision-safe.
-
-## Step 6 – Create MongoDB user
-
-```js
-await User.create({
-  email,
-  username,
-  image,
-});
-```
-
-Now the app has an internal user record.
-
-Important concept:
-
-OAuth authenticates identity  
-Database stores application identity
-
-Google says: “This is Omkar”  
-MongoDB says: “This is user #652839”
-
-Your app always works with database identity.
+HttpOnly: This means JavaScript on the frontend cannot read the cookie. If a hacker injects a malicious script (XSS), they can't steal the "passport."
+Secure: It only travels over HTTPS.
+SameSite: It prevents other websites from trying to use your session.
 
 ## What is a Session?
 
@@ -510,6 +455,127 @@ app/api/.../route.js → backend endpoint
 metadata → SEO control
 
 This architecture allows Next.js to unify frontend rendering, backend logic, routing, performance optimization, and SEO into one framework.
+## How the "Most Copied" System Works Now (in the exact order it happens):
+
+Yes, it is entirely based on the "Copy" button being clicked! Here is exactly how the math works behind the scenes to put it at the beginning of the feed:
+
+The Button Click: When a user clicks the copy button on a prompt, the system looks at the current date and time (e.g., March 16th, 1:30 PM) and secretly saves that exact timestamp to that prompt in the database.
+The "7-Day" Rule: It then deletes any timestamps on that prompt that are older than 7 days. This means the prompt only gets credit for recent copies!
+The Counting Game: Let's say:
+Prompt A was copied 10 times this week.
+Prompt B was copied 5 times this week.
+Prompt C was copied 0 times this week.
+The Homepage Load: When someone opens the homepage, the 
+
+Feed.jsx
+ file looks at all the prompts and counts up those saved timestamps.
+The Sorting: It sorts the prompts from highest to lowest based on that count. It grabs the top 3 heavily copied prompts (in our example, Prompt A, then Prompt B).
+The Assembly: It safely places those top 3 prompts at the very front of the array. Then, it places every other prompt underneath them in chronological order.
+The Display: Finally, it hands that newly organized list to the map function to render the cards.
+
+##  Handled by the Server (The Backend: /api/prompt/[id]/copy)
+
+These steps happen invisibly on your server and database:
+
+The Button Click Setup: The server receives the background message from the user's browser.
+Saving the Timestamp: The server looks up the current date and time and saves it to MongoDB.
+The "7-Day" Rule Auto-Cleanup: The server does the math, finds old dates, permanently deletes them from MongoDB, and saves the new cleaned array.
+
+## 💻 Handled by the Browser (The Frontend: 
+
+components/Feed.jsx
+)
+
+Because your frontend (
+
+Feed.jsx
+) already fetches ALL the public prompts from the server to display them, we let the user's browser do the rest of the work. This saves you a ton of database computing power!
+
+The Counting Game & Homepage Load: When the browser downloads the prompts, it looks at the lengths of the arrays that the server just handed it.
+The Sorting: React (Javascript) inside your frontend runs the high-to-low sort.
+The Assembly: React slices the top 3 and moves them to the front of the list.
+The Display: React paints them to the user's screen.
+
+# Rate Limiting Logic – Redis + Token Bucket (Interview Revision Guide)
+“In PromptVerse, I implemented rate limiting using the Token Bucket algorithm with Redis.
+
+Each user has a bucket of tokens stored in Redis. Every request (like creating or updating a prompt) consumes one token.
+
+Tokens refill at a fixed rate (for example, X requests per minute)
+
+If tokens are available → request is allowed
+
+If tokens are exhausted → the API returns a 429 (Too Many Requests)
+
+I used Redis because it’s fast and supports atomic operations, so it works well for real-time rate limiting across multiple users and servers.
+
+This helped me prevent abuse like spamming prompt creation while still allowing small bursts of activity.”
+
+To protect the server from abuse and manage API costs (especially AI generation), we implement a **Token Bucket** rate-limiting system using **Upstash Redis**.
+
+## Big Picture Architecture
+
+User Request → Middleware → Redis Check → Allow/Reject → API Route
+
+The middleware acts as a gatekeeper for specific routes like `/api/prompt/new` and `/api/auth/*`.
+
+## The Algorithm: Token Bucket
+
+Imagine a bucket that holds a maximum number of "tokens". Each request costs 1 token.
+- **Burst Capacity**: Users can use up all tokens in the bucket instantly (e.g., 10 prompts in a row).
+- **Steady State**: Tokens are added back to the bucket at a fixed rate (e.g., 1 per second).
+
+This allows for quick bursts of activity while enforcing a strict long-term limit.
+
+## Step 1 – Identify the User
+
+We need to know who to limit. The system checks:
+1. **NextAuth Token**: If logged in, we use their unique `email` or `userId`.
+2. **IP Address**: If not logged in, we fall back to the `x-forwarded-for` header or the connection IP.
+
+Key Format: `rate_limit:<identifier>:<path>`
+
+**Examples:**
+- **Logged-in User:** `rate_limit:user@example.com:/api/prompt/new`
+- **Anonymous User (IP-based):** `rate_limit:123.45.67.89:/api/auth/signin`
+- **Fallback:** `rate_limit:anonymous:/api/auth/signup`
+
+## Step 2 – Fetch State from Redis
+
+We store two values in Redis for every user:
+- `tokens`: Current number of tokens left.
+- `lastTime`: Timestamp of the last request.
+
+## Step 3 – Calculate Refill (The "Time-Engine")   --> Imp <--
+
+Instead of a background process, we calculate refills "on-the-fly" whenever a request hits:
+```js
+timePassed = currentTime - lastTime;
+tokensToAdd = timePassed * refillRate;
+newTokens = Math.min(bucketSize, tokens + tokensToAdd);
+```
+This is extremely memory-efficient as it only calculates state when needed.
+
+## Step 4 – Decision & Update
+
+- **If `newTokens >= 1`**:
+  - Subtract 1 token.
+  - Update Redis with `newTokens - 1` and `currentTime`.
+  - Continue to the API.
+- **If `newTokens < 1`**:
+  - Return **429 Too Many Requests**.
+
+## Why use Redis?
+
+1. **Stateless Compliance**: Serverless functions (Vercel) lose their local memory between requests. Redis provides external, persistent memory.
+2. **Speed**: Sub-millisecond latency ensures rate limiting doesn't slow down the user experience.
+3. **Global State**: If you have multiple server instances, they all check the SAME Redis bucket, ensuring limits are enforced globally across the whole app.
+
+## Interview Insights
+
+- **Middleware vs. API Logic**: We run this in `middleware.js` to stop requests *before* they wake up heavy API routes, saving server costs.
+- **Fail-Soft Design**: If Redis is down, we use a `try-catch` to allow the request. It's better to allow an extra request than to break the site for a legitimate user due to an infrastructure glitch.
+- **Headers**: We return `X-RateLimit-Remaining` so the frontend can warn the user before they get blocked.
 
 ## Features
 

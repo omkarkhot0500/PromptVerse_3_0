@@ -43,32 +43,66 @@ const Form = ({ type, post, setPost, submitting, handleSubmit }) => {
           />
         </label>
 
-        <div className="flex items-center gap-2">
-          <span className="font-satoshi font-semibold text-base text-gray-700">
-            Visibility:
-          </span>
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="visibility"
-                checked={!post.isPrivate}
-                onChange={() => setPost({ ...post, isPrivate: false })}
-                className="w-4 h-4"
-              />
-              <span className="text-sm font-satoshi">Public</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="visibility"
-                checked={post.isPrivate}
-                onChange={() => setPost({ ...post, isPrivate: true })}
-                className="w-4 h-4"
-              />
-              <span className="text-sm font-satoshi">Private</span>
-            </label>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-satoshi font-semibold text-base text-gray-700">
+              Visibility:
+            </span>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="visibility"
+                  checked={!post.isPrivate}
+                  onChange={() => setPost({ ...post, isPrivate: false })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm font-satoshi">Public</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="visibility"
+                  checked={post.isPrivate}
+                  onChange={() => setPost({ ...post, isPrivate: true })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm font-satoshi">Private</span>
+              </label>
+            </div>
           </div>
+
+          {!post.isPrivate && (
+            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+              <span className="font-satoshi font-semibold text-base text-gray-700">
+                Public Type:
+              </span>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="publicType"
+                    checked={!post.isPermanent}
+                    onChange={() => setPost({ ...post, isPermanent: false })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm font-satoshi">Vanish</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="publicType"
+                    checked={post.isPermanent}
+                    onChange={() => setPost({ ...post, isPermanent: true })}
+                    className="w-4 h-4 accent-red-600"
+                  />
+                  <span className={`text-sm font-satoshi ${post.isPermanent ? 'text-red-600 font-bold' : 'text-gray-700'}`}>
+                    Permanent
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex-end mx-3 mb-5 gap-4">

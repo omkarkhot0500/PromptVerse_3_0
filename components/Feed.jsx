@@ -1,8 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 import PromptCard from "./PromptCard";
+import PromptCardSkeleton from "./PromptCardSkeleton";
+
+const SkeletonList = () => (
+  <div className="mt-16 prompt_layout">
+    {[1, 2, 3, 4, 5, 6].map((n) => (
+      <PromptCardSkeleton key={n} />
+    ))}
+  </div>
+);
 
 const PromptCardList = ({ data, handleTagClick }) => {
   return (
@@ -20,6 +29,7 @@ const PromptCardList = ({ data, handleTagClick }) => {
 
 const Feed = () => {
   const [allPosts, setAllPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Search states
   const [searchText, setSearchText] = useState("");
@@ -27,10 +37,22 @@ const Feed = () => {
   const [searchedResults, setSearchedResults] = useState([]);
 
   const fetchPosts = async () => {
-    const response = await fetch("/api/prompt");
-    const data = await response.json();
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/prompt");
 
-    setAllPosts(data);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch prompts: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setAllPosts(data);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      // Keep allPosts as [] on error
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -63,6 +85,34 @@ const Feed = () => {
     })();
   };
 
+  const sortedPosts = useMemo(() => {
+    const trending = [...allPosts]
+      .filter((p) => p.recentCopyDates && p.recentCopyDates.length > 0)
+      .sort((a, b) => b.recentCopyDates.length - a.recentCopyDates.length)
+      .slice(0, 3);
+
+    const trendingIds = new Set(trending.map((t) => t._id));
+    const theRest = allPosts.filter((p) => !trendingIds.has(p._id));
+
+    return [...trending, ...theRest];
+  }, [allPosts]);
+
+  const trendingTags = useMemo(() => {
+    const tagCounts = {};
+    allPosts.forEach((post) => {
+      if (post.tag) {
+        // Normalize tag string
+        const cleanTag = post.tag.replace(/^#/, "").toLowerCase();
+        tagCounts[cleanTag] = (tagCounts[cleanTag] || 0) + 1;
+      }
+    });
+
+    return Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map((entry) => entry[0]);
+  }, [allPosts]);
+
   return (
     <section className="feed">
       <form className="relative w-full flex-center">
@@ -76,14 +126,18 @@ const Feed = () => {
         />
       </form>
 
+
+
       {/* All Prompts */}
-      {searchText ? (
+      {isLoading ? (
+        <SkeletonList />
+      ) : searchText ? (
         <PromptCardList
           data={searchedResults}
           handleTagClick={handleTagClick}
         />
       ) : (
-        <PromptCardList data={allPosts} handleTagClick={handleTagClick} />
+        <PromptCardList data={sortedPosts} handleTagClick={handleTagClick} />
       )}
     </section>
   );

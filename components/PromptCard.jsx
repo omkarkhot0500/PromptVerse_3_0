@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
+import { getTimeUntilExpiry } from "@utils/prompt";
 
 const PromptCard = ({ post, handleEdit, handleDelete, handleTagClick }) => {
   const { data: session } = useSession();
@@ -25,34 +26,22 @@ const PromptCard = ({ post, handleEdit, handleDelete, handleTagClick }) => {
     router.push(`/profile/${post.creator._id}?name=${post.creator.username}`);
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     setCopied(post.prompt);
     navigator.clipboard.writeText(post.prompt);
     setTimeout(() => setCopied(false), 3000);
-  };
 
-  // NEW: Calculate time until expiry
-  const getTimeUntilExpiry = () => {
-    if (post.isPrivate || !post.expiresAt) return null;
-    
-    const now = new Date();
-    const expiry = new Date(post.expiresAt);
-    
-    if (expiry < now) return "Expired";
-    
-    const hoursLeft = Math.floor((expiry - now) / (1000 * 60 * 60));
-    const minutesLeft = Math.floor(((expiry - now) % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (hoursLeft === 0) {
-      return `Expires in ${minutesLeft}m`;
+    // NEW: Track copy in background
+    try {
+      await fetch(`/api/prompt/${post._id}/copy`, {
+        method: "PATCH",
+      });
+    } catch (error) {
+      console.error("Failed to track copy", error);
     }
-    if (hoursLeft < 1) return "Expires soon";
-    if (hoursLeft < 24) return `Expires in ${hoursLeft}h`;
-    
-    return null;
   };
 
-  const expiryInfo = getTimeUntilExpiry();
+  const expiryInfo = getTimeUntilExpiry(post);
 
   return (
     <div className='prompt_card'>

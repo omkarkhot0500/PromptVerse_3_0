@@ -37,25 +37,18 @@ const Feed = () => {
     fetchPosts();
   }, []);
 
-  const filterPrompts = (searchtext) => {
-    const regex = new RegExp(searchtext, "i"); // 'i' flag for case-insensitive search
-    return allPosts.filter(
-      (item) =>
-        regex.test(item.creator.username) ||
-        regex.test(item.tag) ||
-        regex.test(item.prompt)
-    );
-  };
-
   const handleSearchChange = (e) => {
     clearTimeout(searchTimeout);
-    setSearchText(e.target.value);
+    const value = e.target.value;
+    setSearchText(value);
 
     // debounce method
     setSearchTimeout(
-      setTimeout(() => {
-        const searchResult = filterPrompts(e.target.value);
-        setSearchedResults(searchResult);
+      setTimeout(async () => {
+        const fetchUrl = value ? `/api/prompt?search=${encodeURIComponent(value)}` : "/api/prompt";
+        const response = await fetch(fetchUrl);
+        const data = await response.json();
+        setSearchedResults(data);
       }, 500)
     );
   };
@@ -63,8 +56,11 @@ const Feed = () => {
   const handleTagClick = (tagName) => {
     setSearchText(tagName);
 
-    const searchResult = filterPrompts(tagName);
-    setSearchedResults(searchResult);
+    (async () => {
+        const response = await fetch(`/api/prompt?search=${encodeURIComponent(tagName)}`);
+        const data = await response.json();
+        setSearchedResults(data);
+    })();
   };
 
   return (

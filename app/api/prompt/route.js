@@ -2,30 +2,68 @@ import Prompt from "@models/prompt";
 import { connectToDB } from "@utils/database";
 
 export const GET = async (request) => {
+    const { searchParams } = new URL(request.url);
+    const searchText = searchParams.get("search");
+
     try {
         await connectToDB();
 
-        // Filter for public prompts that haven't expired
-        // Three scenarios:
-        // 1. Old prompts with expiresAt = null (backward compatibility)
-        // 2. Old prompts without expiresAt field (backward compatibility)
-        // 3. New prompts with expiresAt in the future
         const now = new Date();
+        let pipeline = [];
 
-        console.log(`[Feed] Fetching public prompts. Current time: ${now.toISOString()}`);
+        // 1. If we have a search query, use Atlas Search (MUST be first stage)
+        if (searchText) {
+            pipeline.push({
+                $search: {
+                    index: "promptsearch", // Matches correctly!
+                    compound: {
+                        should: [
+                            {
+                                text: {
+                                    query: searchText,
+                                    path: ["prompt", "tag"],
+                                    fuzzy: { maxEdits: 1 }
+                                }
+                            }
+                        ]
+                    }
+                }
+            });
+        }
 
-        const prompts = await Prompt.find({
-            isPrivate: false,
-            $or: [
-                { expiresAt: { $eq: null } }, // Explicit null values
-                { expiresAt: { $exists: false } }, // Field doesn't exist
-                { expiresAt: { $gt: now } }, // Not yet expired
-            ]
-        })
-        .populate("creator")
-        .sort({ createdAt: -1 }); // Newest first
+        // 2. Filter for active public prompts
+        pipeline.push({
+            $match: {
+                isPrivate: false,
+                $or: [
+                    { expiresAt: { $eq: null } },
+                    { expiresAt: { $exists: false } },
+                    { expiresAt: { $gt: now } },
+                ]
+            }
+        });
 
-        console.log(`[Feed] Found ${prompts.length} active public prompts`);
+        // 3. Populate creator info (Lookup users since we are in aggregation)
+        pipeline.push({
+            $lookup: {
+                from: "users",
+                localField: "creator",
+                foreignField: "_id",
+                as: "creator"
+            }
+        });
+        pipeline.push({ $unwind: "$creator" });
+
+        // 4. Sort results
+        if (searchText) {
+            // Sort by relevance score if searching
+            pipeline.push({ $sort: { score: { $meta: "textScore" }, createdAt: -1 } });
+        } else {
+            // Newest first if listing everything
+            pipeline.push({ $sort: { createdAt: -1 } });
+        }
+
+        const prompts = await Prompt.aggregate(pipeline);
 
         return new Response(JSON.stringify(prompts), { status: 200 })
     } catch (error) {

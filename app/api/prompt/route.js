@@ -79,7 +79,8 @@ export const GET = async (request) => {
         // 4. Sort results
         if (searchText) {
             // Sort by relevance score if searching
-            pipeline.push({ $sort: { score: { $meta: "textScore" }, createdAt: -1 } });
+            pipeline.push({ $addFields: { searchScore: { $meta: "searchScore" } } });
+            pipeline.push({ $sort: { searchScore: -1 } });
         } else {
             // Newest first if listing everything
             pipeline.push({ $sort: { createdAt: -1 } });

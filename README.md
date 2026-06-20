@@ -1,10 +1,10 @@
 # Next.js App Router – Full Interview Revision Guide
 
-This project is built using Next.js App Router. This document explains core architecture, routing, rendering, and backend behavior in a compact but complete format so it can be revised quickly before interviews.
+This project is built using Next.js App Router. This document explains core architecture, routing, rendering, and backend behavior in a compact but complete format so it can be revised quickly before interviews
 
 ## Client vs Server Components
 
-Next.js uses Server Components by default. A Server Component runs only on the server, sends minimal JavaScript to the browser, improves performance, and is ideal for static UI and secure data fetching. Server Components cannot use React hooks, event handlers, or browser APIs because they never execute in the browser.
+Next.js uses Server Components by default. A Server Component runs only on the server, sends minimal JavaScript to the browser, improves performance, and is ideal for static UI and secure data fetching. Server Components cannot use React hooks, event handlers, or browser APIs because they never execute in the browser
 
 To force browser execution, add `"use client"` at the top of a file. This converts the file into a Client Component. Client Components behave like normal React components and support state, lifecycle hooks, interactivity, and browser features.
 

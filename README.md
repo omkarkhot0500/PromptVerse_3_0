@@ -1,3 +1,48 @@
+# Data transfer ways in backend and frontend
+
+FRONTEND
+   |
+   |  HTTP REQUEST
+   |
+   |  Method
+   |  GET / POST / PUT / PATCH / DELETE
+   |
+   |  URL
+   |  /users/123?page=2
+   |
+   |  Headers
+   |  Authorization: Bearer token
+   |
+   |  Body
+   |  {
+   |     "name": "Omkar"
+   |  }
+   ↓
+BACKEND
+   |
+   | processes request
+   |
+   ↓
+DATABASE
+   |
+   ↓
+BACKEND
+   |
+   | HTTP RESPONSE
+   |
+   | Status Code: 200
+   |
+   | Headers
+   |
+   | Body
+   | {
+   |    "name": "Omkar",
+   |    "age": 22
+   | }
+   ↓
+FRONTEND
+
+
 # Next.js App Router – Full Interview Revision Guide
 
 This project is built using Next.js App Router. This document explains core architecture, routing, rendering, and backend behavior in a compact but complete format so it can be revised quickly before interviews.

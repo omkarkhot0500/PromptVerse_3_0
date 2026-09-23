@@ -343,6 +343,25 @@ HttpOnly: This means JavaScript on the frontend cannot read the cookie. If a hac
 Secure: It only travels over HTTPS.
 SameSite: It prevents other websites from trying to use your session.
 
+## How JWT works
+
+1. Header
+Contains information about the token, such as the signing algorithm.
+
+2. Payload
+Contains claims/information about the user.
+
+3. Signature
+Used to verify that the token was created by the server and hasn't been modified.
+
+JWT allows stateless authentication. The server doesn't need to maintain a session for every user. The token itself carries the required claims, and the server verifies the token for each protected request.
+
+When a user logs in, the frontend sends the user's email and password to the backend. The backend verifies the credentials. If they are correct, the backend generates a JWT containing information such as the user's user ID and sends the token back to the frontend.
+
+The frontend stores the token and sends it with subsequent API requests, usually in the Authorization header as a Bearer token.
+
+The backend extracts the token and uses the secret key or public key to verify its signature. It also checks claims such as expiration. If the token is valid, the backend decodes the payload, gets information such as the user ID, and allows the request to continue. If the token is invalid or expired, the backend returns an unauthorized response.
+
 ## What is a Session?
 
 A session is memory of who the user is after login.

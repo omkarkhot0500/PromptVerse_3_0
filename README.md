@@ -375,6 +375,20 @@ That remembered state = session
 
 Without sessions, users would need to login on every request.
 
+## What is Database session?
+
+User logs in
+     ↓
+NextAuth creates session
+     ↓
+Session ID stored in cookie
+     ↓
+Session record stored in DB
+     ↓
+Request comes in
+     ↓
+NextAuth looks up session in DB
+
 ## What is a Cookie?
 
 A cookie is a tiny piece of data stored in the browser.

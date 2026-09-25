@@ -12,6 +12,33 @@ const PromptCard = ({ post, handleEdit, handleDelete, handleTagClick }) => {
   const router = useRouter();
 
   const [copied, setCopied] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [fullPrompt, setFullPrompt] = useState(null);
+  const [isFetching, setIsFetching] = useState(false);
+
+  const PROMPT_PREVIEW_LIMIT = 150;
+  const isLongPrompt = (post?.prompt?.length || 0) > PROMPT_PREVIEW_LIMIT;
+
+  const fetchFullPrompt = async () => {
+    if (fullPrompt) return fullPrompt;
+    setIsFetching(true);
+    try {
+      const response = await fetch(`/api/prompt/${post._id}`);
+      if (response.ok) {
+        const data = await response.json();
+        const fetchedText = data.prompt || post.prompt;
+        setFullPrompt(fetchedText);
+        return fetchedText;
+      }
+    } catch (error) {
+      console.error("Error fetching full prompt:", error);
+    } finally {
+      setIsFetching(false);
+    }
+    const fallbackText = post?.prompt || "";
+    setFullPrompt(fallbackText);
+    return fallbackText;
+  };
 
   const handleProfileClick = () => {
     console.log(post);
@@ -26,9 +53,32 @@ const PromptCard = ({ post, handleEdit, handleDelete, handleTagClick }) => {
     router.push(`/profile/${post.creator._id}?name=${post.creator.username}`);
   };
 
+  const handleMoreClick = async () => {
+    if (isExpanded) {
+      setIsExpanded(false);
+      return;
+    }
+    if (!fullPrompt && isLongPrompt) {
+      await fetchFullPrompt();
+    }
+    setIsExpanded(true);
+  };
+
   const handleCopy = async () => {
-    setCopied(post.prompt);
-    navigator.clipboard.writeText(post.prompt);
+    let textToCopy = post.prompt;
+
+    if (isLongPrompt) {
+      if (fullPrompt) {
+        textToCopy = fullPrompt;
+      } else {
+        textToCopy = await fetchFullPrompt();
+      }
+    }
+
+    setCopied(textToCopy);
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(textToCopy);
+    }
     setTimeout(() => setCopied(false), 3000);
 
     // NEW: Track copy in background
@@ -42,6 +92,12 @@ const PromptCard = ({ post, handleEdit, handleDelete, handleTagClick }) => {
   };
 
   const expiryInfo = getTimeUntilExpiry(post);
+
+  const displayedPrompt = isLongPrompt && !isExpanded
+    ? `${post.prompt.slice(0, PROMPT_PREVIEW_LIMIT)}...`
+    : (fullPrompt || post.prompt);
+
+  const isCopied = Boolean(copied) && (copied === post.prompt || copied === fullPrompt || copied === displayedPrompt);
 
   return (
     <div className='prompt_card'>
@@ -68,18 +124,32 @@ const PromptCard = ({ post, handleEdit, handleDelete, handleTagClick }) => {
         <div className='copy_btn' onClick={handleCopy}>
           <Image
             src={
-              copied === post.prompt
+              isCopied
                 ? "/assets/icons/tick.svg"
                 : "/assets/icons/copy.svg"
             }
-            alt={copied === post.prompt ? "tick_icon" : "copy_icon"}
+            alt={isCopied ? "tick_icon" : "copy_icon"}
             width={12}
             height={12}
           />
         </div>
       </div>
 
-      <p className='my-4 font-satoshi text-sm text-gray-700'>{post.prompt}</p>
+      <div className='my-4 font-satoshi text-sm text-gray-700'>
+        <p className='inline'>
+          {displayedPrompt}
+        </p>
+        {isLongPrompt && (
+          <button
+            type='button'
+            onClick={handleMoreClick}
+            className='ml-2 text-xs font-semibold text-blue-600 hover:underline focus:outline-none cursor-pointer'
+          >
+            {isFetching ? "Loading..." : isExpanded ? "Less" : "More"}
+          </button>
+        )}
+      </div>
+
       <p
         className='font-inter text-sm blue_gradient cursor-pointer'
         onClick={() => handleTagClick && handleTagClick(post.tag)}

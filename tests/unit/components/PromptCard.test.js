@@ -237,4 +237,58 @@ describe('PromptCard Component', () => {
     expect(screen.queryByText('Edit')).not.toBeInTheDocument();
     expect(screen.queryByText('Delete')).not.toBeInTheDocument();
   });
+
+  // ─── PROMPT PREVIEW AND LAZY LOADING TESTS ─────────────────
+
+  const longPromptText = 'A'.repeat(200);
+  const longPost = {
+    ...mockPost,
+    _id: 'long123',
+    prompt: longPromptText,
+  };
+
+  test('shows prompt preview and More button for long prompt', () => {
+    render(<PromptCard post={longPost} />);
+
+    // Preview should end with "..."
+    expect(screen.getByText(new RegExp('A{150}\\.\\.\\.'))).toBeInTheDocument();
+    expect(screen.getByText('More')).toBeInTheDocument();
+  });
+
+  test('fetches complete prompt and expands on More click', async () => {
+    const fullFetchedPrompt = 'A'.repeat(200) + ' FULL PROMPT DATA';
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ prompt: fullFetchedPrompt }),
+    });
+
+    render(<PromptCard post={longPost} />);
+
+    const moreButton = screen.getByText('More');
+    fireEvent.click(moreButton);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/prompt/long123');
+      expect(screen.getByText(new RegExp('FULL PROMPT DATA'))).toBeInTheDocument();
+      expect(screen.getByText('Less')).toBeInTheDocument();
+    });
+  });
+
+  test('fetches complete prompt before copying when Copy clicked without More', async () => {
+    const fullFetchedPrompt = 'A'.repeat(200) + ' COPIED FULL PROMPT';
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ prompt: fullFetchedPrompt }),
+    });
+
+    render(<PromptCard post={longPost} />);
+
+    const copyBtn = screen.getByAltText('copy_icon').closest('div');
+    fireEvent.click(copyBtn);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/prompt/long123');
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(fullFetchedPrompt);
+    });
+  });
 });

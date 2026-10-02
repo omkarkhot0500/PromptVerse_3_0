@@ -6,6 +6,9 @@ import redis from "@utils/redis";
 export const dynamic = "force-dynamic";
 
 export const GET = async (request) => {
+    const { searchParams } = new URL(request.url);
+    const searchText = searchParams.get("search");
+
     try {
         await connectToDB();
 
@@ -27,20 +30,63 @@ export const GET = async (request) => {
         // 2. Old prompts without expiresAt field (backward compatibility)
         // 3. New prompts with expiresAt in the future
         const now = new Date();
+        let pipeline = [];
 
+        // 1. If we have a search query, use Atlas Search (MUST be first stage)
+        if (searchText) {
+            pipeline.push({
+                $search: {
+                    index: "promptsearch", // Matches correctly!
+                    compound: {
+                        should: [
+                            {
+                                text: {
+                                    query: searchText,
+                                    path: ["prompt", "tag"],
+                                    fuzzy: { maxEdits: 1 }
+                                }
+                            }
+                        ]
+                    }
+                }
+            });
+        }
+
+        // 2. Filter for active public prompts
+        pipeline.push({
+            $match: {
+                isPrivate: false,
+                $or: [
+                    { expiresAt: { $eq: null } },
+                    { expiresAt: { $exists: false } },
+                    { expiresAt: { $gt: now } },
+                ]
+            }
+        });
+
+        // 3. Populate creator info (Lookup users since we are in aggregation)
+        pipeline.push({
+            $lookup: {
+                from: "users",
+                localField: "creator",
+                foreignField: "_id",
+                as: "creator"
+            }
+        });
+        pipeline.push({ $unwind: { path: "$creator", preserveNullAndEmptyArrays: true } });
         console.log(`[Feed] Cache miss. Fetching public prompts from DB. Current time: ${now.toISOString()}`);
 
-        const prompts = await Prompt.find({
-            isPrivate: false,
-            $or: [
-                { expiresAt: { $eq: null } }, // Explicit null values
-                { expiresAt: { $exists: false } }, // Field doesn't exist
-                { expiresAt: { $gt: now } }, // Not yet expired
-            ]
-        })
-        .populate("creator")
-        .sort({ createdAt: -1 }); // Newest first
+        // 4. Sort results
+        if (searchText) {
+            // Sort by relevance score if searching
+            pipeline.push({ $addFields: { searchScore: { $meta: "searchScore" } } });
+            pipeline.push({ $sort: { searchScore: -1 } });
+        } else {
+            // Newest first if listing everything
+            pipeline.push({ $sort: { createdAt: -1 } });
+        }
 
+        const prompts = await Prompt.aggregate(pipeline);
         console.log(`[Feed] Found ${prompts.length} active public prompts`);
         
         // CACHE STORE: Save to Redis with 10-minute TTL (600 seconds)

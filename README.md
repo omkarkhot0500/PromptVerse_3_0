@@ -413,86 +413,21 @@ Full lifecycle:
 
 This is how login persists across page reloads.
 
-## Step 7 – Session callback
+## How auth works in this project.
 
-NextAuth runs:
+In my PromptVerse project, I implemented authentication using Google OAuth with NextAuth, and I use MongoDB to store user information.
 
-```js
-callbacks.session();
-```
+When a user clicks on Sign in with Google, they authenticate with Google. After successful authentication, Google provides the user's profile information, such as their email, name, and profile picture.
 
-This callback customizes what data goes inside the session.
+NextAuth then checks whether the user's email already exists in MongoDB. If the user already exists, I use their existing account. If the user is new, I generate a unique username and create a new user record in MongoDB.
 
-Google provides:
+After that, I add the user's MongoDB ID and username to the JWT. NextAuth protects the token using my configured secret and stores it in a cookie in the browser.
 
-- email
-- name
-- image
+Whenever the user makes another request, the browser automatically sends that cookie to the server. NextAuth validates and decrypts the JWT using the secret, allowing my application to retrieve the user's information.
 
-But your app also needs:
+I then use the authenticated user's MongoDB ID in my backend to fetch their relevant data, such as their prompts, and return it to the frontend.
 
-- MongoDB user ID
-- username
-
-So the session callback fetches the database user:
-
-```js
-const sessionUser = await User.findOne(...)
-```
-
-Then attaches:
-
-```js
-session.user.id;
-session.user.username;
-```
-
-Final session object:
-
-```
-session.user = {
-  email,
-  name,
-  image,
-  id,
-  username
-}
-```
-
-Frontend now receives both Google identity and app identity.
-
-Interview insight:  
-Session merges OAuth identity with internal database identity.
-
-## Why fetch MongoDB user again?
-
-Because Google only proves identity.
-
-Your app requires internal identity.
-
-Google → external authentication  
-MongoDB → internal authorization
-
-This separation allows:
-
-- user permissions
-- app data ownership
-- profile customization
-- database relations
-
-## Step 8 – Session stored in cookie
-
-After session is built:
-
-NextAuth stores it securely in a cookie.
-
-Browser automatically carries login proof.
-
-Every request:
-
-Browser → cookie → server → session restored
-
-No re-login needed.
+So, Google OAuth handles authentication, NextAuth manages JWT creation and validation, and MongoDB stores user information and application data.
 
 ## Perfect Interview Summary Answer
 
@@ -623,14 +558,6 @@ This is extremely memory-efficient as it only calculates state when needed.
 - **Middleware vs. API Logic**: We run this in `middleware.js` to stop requests *before* they wake up heavy API routes, saving server costs.
 - **Fail-Soft Design**: If Redis is down, we use a `try-catch` to allow the request. It's better to allow an extra request than to break the site for a legitimate user due to an infrastructure glitch.
 - **Headers**: We return `X-RateLimit-Remaining` so the frontend can warn the user before they get blocked.
-
-## Features
-
-- To create prompts and share them .
-- Google auth.
-- Create , Update and delete prompts.
-- Product Browsing: Users can view and search for products.
-- Responsive Design: Optimized for both desktop and mobile devices.
 
 ## Tech Stack
 

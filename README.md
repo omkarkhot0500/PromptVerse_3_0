@@ -429,13 +429,6 @@ I then use the authenticated user's MongoDB ID in my backend to fetch their rele
 
 So, Google OAuth handles authentication, NextAuth manages JWT creation and validation, and MongoDB stores user information and application data.
 
-## Perfect Interview Summary Answer
-
-If asked to explain login flow:
-
-We use NextAuth with Google OAuth. When a user logs in, they are redirected to Google. After authentication, Google returns profile data to NextAuth. In the signIn callback we connect to MongoDB and check if the user exists. If not, we generate a unique username and create a new record. Then in the session callback we attach our database user ID and username to the session so the frontend has app-specific identity. OAuth verifies identity while MongoDB manages users. The session is stored in a secure cookie so login persists across requests.
-
-This demonstrates understanding of authentication, sessions, cookies, and identity separation.
 
 ## How the "Most Copied" System Works Now (in the exact order it happens):
 

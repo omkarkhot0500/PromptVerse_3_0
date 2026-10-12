@@ -43,6 +43,42 @@ So in my architecture, **MongoDB is the main source of truth**, while **Redis is
 
 Overall, PromptVerse evolved through real usage, feedback, and new requirements. It helped me gain practical experience with **full-stack development, authentication, database design, caching, rate limiting, API security, and performance optimization**.
 
+## All about Auth
+## How auth works in this project.
+
+In my PromptVerse project, I implemented authentication using Google OAuth with NextAuth, and I use MongoDB to store user information.
+
+When a user clicks on Sign in with Google, they authenticate with Google. After successful authentication, Google provides the user's profile information, such as their email, name, and profile picture.
+
+NextAuth then checks whether the user's email already exists in MongoDB. If the user already exists, I use their existing account. If the user is new, I generate a unique username and create a new user record in MongoDB.
+
+After that, I add the user's MongoDB ID and username to the JWT. NextAuth protects the token using my configured secret and stores it in a cookie in the browser.
+
+Whenever the user makes another request, the browser automatically sends that cookie to the server. NextAuth validates and decrypts the JWT using the secret, allowing my application to retrieve the user's information.
+
+I then use the authenticated user's MongoDB ID in my backend to fetch their relevant data, such as their prompts, and return it to the frontend.
+
+So, Google OAuth handles authentication, NextAuth manages JWT creation and validation, and MongoDB stores user information and application data.
+
+
+## How the "Most Copied" System Works Now (in the exact order it happens):
+
+Yes, it is entirely based on the "Copy" button being clicked! Here is exactly how the math works behind the scenes to put it at the beginning of the feed:
+
+The Button Click: When a user clicks the copy button on a prompt, the system looks at the current date and time (e.g., March 16th, 1:30 PM) and secretly saves that exact timestamp to that prompt in the database.
+The "7-Day" Rule: It then deletes any timestamps on that prompt that are older than 7 days. This means the prompt only gets credit for recent copies!
+The Counting Game: Let's say:
+Prompt A was copied 10 times this week.
+Prompt B was copied 5 times this week.
+Prompt C was copied 0 times this week.
+The Homepage Load: When someone opens the homepage, the 
+
+Feed.jsx
+ file looks at all the prompts and counts up those saved timestamps.
+The Sorting: It sorts the prompts from highest to lowest based on that count. It grabs the top 3 heavily copied prompts (in our example, Prompt A, then Prompt B).
+The Assembly: It safely places those top 3 prompts at the very front of the array. Then, it places every other prompt underneath them in chronological order.
+The Display: Finally, it hands that newly organized list to the map function to render the cards.
+
 
 ## Redis (Upstash)
 
@@ -92,3 +128,4 @@ I don't use write-through caching. When a prompt is created or updated, I save i
 Did you use it? No.
 Interview answer:
 I don't use write-back caching. My application writes data directly to MongoDB rather than writing to Redis first and updating the database later.
+

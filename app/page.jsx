@@ -1,5 +1,4 @@
 import Feed from "@components/Feed";
-import GoogleAdSense from "@components/GoogleAdSense";
 
 const Home = () => (
   <section className="w-full flex-center flex-col">
@@ -14,15 +13,6 @@ const Home = () => (
     </p>
 
     <Feed />
-
-    <div className="w-full mt-16 pt-8 border-t border-gray-200">
-      <GoogleAdSense
-        publisherId="pub-9638300077760993"
-        adSlot="4752142806"
-        format="auto"
-        responsive={true}
-      />
-    </div>
   </section>
 );
 

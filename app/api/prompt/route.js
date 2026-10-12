@@ -13,6 +13,7 @@ export const GET = async (request) => {
         try {
             const cachedPrompts = await redis.get('feed:homepage');
             if (cachedPrompts) {
+                console.log("Data came from cache");
                 console.log(`[Feed] Cache hit! Returning public prompts from Redis.`);
                 return new Response(JSON.stringify(cachedPrompts), { status: 200 });
             }
@@ -28,6 +29,7 @@ export const GET = async (request) => {
         // 3. New prompts with expiresAt in the future
         const now = new Date();
 
+        console.log("Data came from database");
         console.log(`[Feed] Cache miss. Fetching public prompts from DB. Current time: ${now.toISOString()}`);
 
         const prompts = await Prompt.find({

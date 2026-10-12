@@ -42,3 +42,53 @@ For **caching**, I cache the public prompts displayed on the homepage in Redis. 
 So in my architecture, **MongoDB is the main source of truth**, while **Redis is used as a fast temporary layer for caching and rate-limiting state**.
 
 Overall, PromptVerse evolved through real usage, feedback, and new requirements. It helped me gain practical experience with **full-stack development, authentication, database design, caching, rate limiting, API security, and performance optimization**.
+
+
+## Redis (Upstash)
+
+# Redis concepts you used
+1. Caching
+Caching means storing frequently requested data temporarily so that the application can retrieve it faster.
+Interview answer:
+I used Redis to cache frequently accessed prompt feeds so that the application doesn't need to query MongoDB every time.
+
+2. Cache hit and cache miss
+- Cache hit: Data is available in Redis.
+- Cache miss: Data is not available in Redis, so the application fetches it from MongoDB.
+Interview answer:
+When a user requests the homepage feed, my application checks Redis first. If the data exists, it returns the cached result. Otherwise, it fetches the data from MongoDB and stores it in Redis for future requests.
+
+3. Cache-aside pattern
+Your application handles checking Redis, fetching missing data from MongoDB, and storing the result in Redis. This is commonly called the cache-aside pattern.
+Interview answer:
+I used the cache-aside pattern to improve performance. Redis is checked first, and MongoDB is queried only when the required cached data is unavailable.
+
+4. TTL (Time to Live)
+TTL automatically expires data after a specified time.
+Interview answer:
+I set a TTL of 10 minutes for cached feed data and one hour for rate-limit keys. This prevents cached data and rate-limit records from remaining indefinitely.
+
+5. Cache invalidation
+When new data is written to MongoDB, your application deletes the relevant cache so that the next request can fetch fresh data.
+Interview answer:
+After creating or updating a prompt, I invalidate the relevant Redis cache. The next request fetches updated data from MongoDB and repopulates the cache.
+
+6. Rate limiting using Redis
+Rate limiting prevents users from sending too many requests within a given period. Your project uses the Token Bucket algorithm.
+Interview answer:
+I used Redis to maintain rate-limiting information and implemented the Token Bucket algorithm to control API requests. If a user exceeds the allowed limit, the application rejects the request.
+
+7. Read-through caching ⚠️
+Did you use it? Not strictly. Your implementation follows the cache-aside pattern, which is similar.
+Interview answer:
+My application checks Redis first. If the data is unavailable, it fetches the data from MongoDB and stores it in Redis for future requests. This is called the cache-aside pattern.
+
+8. Write-through caching ❌
+Did you use it? No.
+Interview answer:
+I don't use write-through caching. When a prompt is created or updated, I save it to MongoDB and invalidate the relevant Redis cache. The cache is refreshed when the next request arrives.
+
+9. Write-back caching ❌
+Did you use it? No.
+Interview answer:
+I don't use write-back caching. My application writes data directly to MongoDB rather than writing to Redis first and updating the database later.
